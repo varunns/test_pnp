@@ -1,4 +1,7 @@
 #include "EstimateControllerPose.h"
+#include "Constants.h"
+#include "P3p.h"
+#include <TooN/TooN.h>
 
 EstimateControllerPose::EstimateControllerPose(const cv::Mat& image)
 {
@@ -13,7 +16,9 @@ EstimateControllerPose::EstimateControllerPose(const cv::Mat& image)
 }
 
 void EstimateControllerPose::init()
-{}
+{
+	
+}
 
 void EstimateControllerPose::getFeatures()
 {
@@ -84,6 +89,11 @@ void EstimateControllerPose::rotateAndSortContours()
 
 	std::sort(contours_info_.begin(), contours_info_.end(), compareByX);
 
+	for(int i = 0; i < contours_info_.size(); i++)
+	{
+		contours_info_[i].id = i;
+	}
+
 	if(debug_)
 	{
 		cv::Mat test_image = image_.clone();
@@ -114,14 +124,16 @@ void EstimateControllerPose::getCandidatePointsAndPassToPnpVoting()
 			index_2d_.push_back(j);
 			index_2d_.push_back(j+1);
 			index_2d_.push_back(j+2);
-			solvePnPAndVote();
+			//solvePnPAndVote();
 		}
 		index_2d_.clear();
 		index_3d_.clear();
 	}
 }
 
-void EstimateControllerPose::solvePnPAndVote()
+void EstimateControllerPose::solvePnpKniep(const std::vector<cv::Point3d>& points3d,
+										   const std::vector<cv::Point2d>& points2d,
+										   Pose& pose_estimate)
 {
-	
+
 }

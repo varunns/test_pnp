@@ -8,7 +8,7 @@
 
 EstimateControllerPose* obj;
 
-void test_input()
+/*void test_input()
 {
 	std::cout<<"In test_input()"<<std::endl;
 	if(obj->getImage().empty())
@@ -32,14 +32,14 @@ void test_contours()
 void test_rotatedAndSorted_contours()
 {
 	obj->rotateAndSortContours();
-}
+}*/
 
 int main(int argc, char** argv)
 {
 	cv::Mat image = cv::imread("/home/varun/dev/ControllerPose/data/test.jpg");
 	obj = new EstimateControllerPose(image);
-	test_input();
+/*	test_input();
 	test_contours();
-	test_rotatedAndSorted_contours();
+	test_rotatedAndSorted_contours();*/
 	return 0;
 }
