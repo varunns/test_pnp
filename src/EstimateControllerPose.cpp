@@ -188,11 +188,37 @@ void EstimateControllerPose::setup3dIndicesAnd2dIndicesPairs()
 void EstimateControllerPose::solvePnpAndVote()
 {
 	solvePnpKniep();
-	setVotes();
+	//setVotes();
 }
 
-void EstimateControllerPose::setVotes()
-{}
+
+void EstimateControllerPose::setVotes(const cv::Mat& rvec,
+									  const cv::Mat& tvec)
+{
+
+	cv::Mat r = rvec.inv();
+	cv::Mat t = -r*tvec;
+	std::vector<cv::Point2d> projected_points;	
+
+	camera_model_obj_.projectPoints(points_3d_solve_,
+									r, t,
+									projected_points);
+
+	if(camera_model_obj_.reprojectionError(points_2d_solve_, projected_points) > 1)
+	{
+		r.release();
+		t.release();
+		return;
+	}
+
+	getVotesForTestFeatures(r, t);
+}
+
+void EstimateControllerPose::getVotesForTestFeatures(const cv::Mat& r,
+											         const cv::Mat& t)
+{
+	
+}
 
 
 void EstimateControllerPose::solvePnpKniep()
@@ -260,10 +286,11 @@ void EstimateControllerPose::solvePnpKniep()
 				R.at<double>(j,k) = Rtoon[j][k];
 			}
 		}
-		std::cout<<"Translation:\n"<<tvecs<<std::endl;
-		std::cout<<"Rotation:\n"<<R<<std::endl;
-		translations_.push_back(tvecs);
-		rotations_.push_back(R);
+		
+		setVotes(R, tvecs);
+
+		R.release();
+		tvecs.release();
 	}
 
 }

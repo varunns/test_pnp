@@ -12,6 +12,7 @@
 #include <Eigen/Geometry>
 
 #include "CameraModel.h"
+#include "rotation_convertor.h"
 
 
 class EstimateControllerPose
@@ -90,9 +91,13 @@ private:
 
 	void test_inputs();
 
-	void setVotes();
+	void setVotes(const cv::Mat& rvec,
+				  const cv::Mat& tvec);
 
 	Eigen::MatrixXd votes_;
+
+	void getVotesForTestFeatures(const cv::Mat& r, 
+								 const cv::Mat& t);
 };
 
 #endif

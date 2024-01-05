@@ -69,6 +69,18 @@ cv::Point3d CameraModel::rotatePoint(cv::Point3d pt)
 	return cv::Point3d(Xc, Yc, Zc);
 }
 
+double CameraModel::reprojectionError(std::vector<cv::Point2d>& pt1,
+												  std::vector<cv::Point2d>& pt2)
+{
+	double distance = 0;
+	for(size_t i = 0; i < pt1.size(); i++)
+	{
+		distance += cv::norm(pt1[i] - pt2[i]);
+	}
+	return (distance/double(pt1.size()));
+
+}
+
 cv::Point3d CameraModel::translatePoint(cv::Point3d pt)
 {		
 	return cv::Point3d(pt.x+t0, pt.y+t1, pt.z+t2);

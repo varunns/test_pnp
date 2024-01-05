@@ -51,6 +51,9 @@ public:
 
 
 	cv::Point2d getImagePoint(const cv::Point3d& pt);
+
+	double reprojectionError(std::vector<cv::Point2d>& pt1,
+					  		 std::vector<cv::Point2d>& pt2);
 };
 
 #endif
