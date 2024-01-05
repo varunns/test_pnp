@@ -31,8 +31,8 @@ private:
 
 public:
 	double fx, fy, cx, cy;   //intrinsics
-	
-	CameraModel(const std::string& config_file);
+	//CameraModel(const std::string& config_file);
+	CameraModel();
 
 	void undistortPoints(const std::vector<cv::Point2d>& distorted_points, 
 						 std::vector<cv::Point2d>& undistort_points)

@@ -1,6 +1,6 @@
 #include "CameraModel.h"
 
-CameraModel::CameraModel(const std::string& config_path)
+CameraModel::CameraModel()
 {
   	intrinsic_matrix.at<double>(0, 0) = 235.483; //319.59208146;
   	intrinsic_matrix.at<double>(1, 1) = 235.361; //237.53868415;

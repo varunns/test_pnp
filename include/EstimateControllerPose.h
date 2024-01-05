@@ -8,6 +8,11 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
+
+#include "CameraModel.h"
+
 
 class EstimateControllerPose
 {
@@ -26,9 +31,9 @@ public:
 		int id;
 	};
 
-	EstimateControllerPose(){}
-	Pose getPose(const cv::Mat& image);
+	void getPose();
 	EstimateControllerPose(const cv::Mat& image);
+
 
 private:
 
@@ -51,13 +56,11 @@ private:
 	std::vector<int> index_2d_;
 	std::vector<int> index_3d_;
 
+	std::vector<cv::Point3d> points_3d_solve_;
+	std::vector<cv::Point2d> points_2d_solve_;
+
 	std::vector<std::vector<int> > combinations_3d_;
-
-
-	std::vector<std::vector<int> > point_3d_ids  {{1,2,3},
-								    		 	 {2,3,4},
-											     {3,4,5}};
-
+	std::vector<cv::Point3d> led_points_3d_;
 
 	bool static compareByX(const ContourInfo &a, const ContourInfo &b)
 	{
@@ -67,14 +70,29 @@ private:
 	bool debug_ = true;
 	cv::Mat image_;
 	
-	
 	void init();
-	void solvePnpKniep(const std::vector<cv::Point3d>& points3d,
-		               const std::vector<cv::Point2d>& points2d,
-		               Pose& pose_estimate);
+
+	//solve p3p give 4 differnt solutions
+	std::vector<cv::Mat> rotations_;
+	std::vector<cv::Mat> translations_;
+	void solvePnpKniep();
+	void setup3dIndicesAnd2dIndicesPairs();
+
+
 	//void getPoseForCombinationsofThree();
 	//void checkPnPAndVote();
 
+	CameraModel camera_model_obj_;
+
+	void readCombinationsFromCSVFile(const std::string& str);
+
+	void solvePnpAndVote();
+
+	void test_inputs();
+
+	void setVotes();
+
+	Eigen::MatrixXd votes_;
 };
 
 #endif

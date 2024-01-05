@@ -66,9 +66,9 @@ public:
 	}
 
 
-	Constants(const std::string& file_path)
+	Constants()
 	{
-		readCombinationFile(file_path);
+		//readCombinationFile(file_path);
 	}
 };
 

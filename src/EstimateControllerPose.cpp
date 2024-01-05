@@ -3,6 +3,7 @@
 #include "P3p.h"
 #include <TooN/TooN.h>
 
+
 EstimateControllerPose::EstimateControllerPose(const cv::Mat& image)
 {
 	image_ = image;
@@ -12,12 +13,49 @@ EstimateControllerPose::EstimateControllerPose(const cv::Mat& image)
 		cv::imshow("input", image_);
 		cv::waitKey(0);
 	}
-	init();
+	readCombinationsFromCSVFile("/home/varun/dev/test_pnp/data/combination.csv");
+	Constants const_obj;
+	led_points_3d_ = const_obj.getPoints3d();
+
 }
 
-void EstimateControllerPose::init()
+void EstimateControllerPose::test_inputs()
 {
+	for(int i = 0; i < combinations_3d_.size(); i++)
+	{
+		for(int j = 0; j < 3; j++){
+			std::cout<<combinations_3d_[i][j]<<"\t";
+		}
+		std::cout<<std::endl;
+	}
+	std::cout<<std::endl;
+
+}
+
+
+void EstimateControllerPose::readCombinationsFromCSVFile(const std::string& str)
+{
+    std::ifstream csvFile;
+    csvFile.open(str.c_str());
+
+	std::string line;
+	std::vector<std::string> vec;
 	
+	while(getline(csvFile, line))
+	{
+		if(line.empty())
+		{
+			continue;
+		}
+		std::istringstream iss(line);
+		std::string lineStream;
+		std::vector<int> row;
+		while(getline(iss, lineStream, ','))
+		{
+			row.push_back(stoi(lineStream));
+		}
+		combinations_3d_.push_back(row);
+	}
 }
 
 void EstimateControllerPose::getFeatures()
@@ -51,6 +89,17 @@ void EstimateControllerPose::getFeatures()
     	cv::imshow( "Contours", drawing );
     	cv::waitKey(0);
 	}
+
+	//initialize vote matrix
+	votes_ = Eigen::MatrixXd::Zero(contours_info_.size(), led_points_3d_.size());
+}
+
+void EstimateControllerPose::getPose()
+{
+	getFeatures();
+	rotateAndSortContours();
+	setup3dIndicesAnd2dIndicesPairs();
+
 }
 
 void EstimateControllerPose::rotateAndSortContours()
@@ -114,26 +163,108 @@ void EstimateControllerPose::rotateAndSortContours()
 	}
 }
 
-void EstimateControllerPose::getCandidatePointsAndPassToPnpVoting()
+void EstimateControllerPose::setup3dIndicesAnd2dIndicesPairs()
 {
-	for(int i = 0; i < point_3d_ids.size(); i++)
+	std::cout<<"I am in setup3dIndicesAnd2dIndicesPairs"<<std::endl;
+	index_2d_.clear();
+	index_3d_.clear();
+	std::cout<<combinations_3d_.size()<<std::endl;
+	for(int i = 0; i < combinations_3d_.size(); i++)
 	{
-		index_3d_ = point_3d_ids[i];
+		index_3d_ = combinations_3d_[i];
 		for(int j = 0; j < contours_.size()-3; j++)
 		{
+			std::cout<<"Inside loope"<<std::endl;
 			index_2d_.push_back(j);
 			index_2d_.push_back(j+1);
 			index_2d_.push_back(j+2);
-			//solvePnPAndVote();
+			solvePnpAndVote();
 		}
 		index_2d_.clear();
 		index_3d_.clear();
 	}
 }
 
-void EstimateControllerPose::solvePnpKniep(const std::vector<cv::Point3d>& points3d,
-										   const std::vector<cv::Point2d>& points2d,
-										   Pose& pose_estimate)
+void EstimateControllerPose::solvePnpAndVote()
+{
+	solvePnpKniep();
+	setVotes();
+}
+
+void EstimateControllerPose::setVotes()
+{}
+
+
+void EstimateControllerPose::solvePnpKniep()
 {
 
+	std::cout<<"I am in solvePnpAndVote"<<std::endl;
+	points_3d_solve_.clear();
+	points_2d_solve_.clear();
+
+	for(size_t i = 0; i < 3; i++)
+	{
+		points_3d_solve_.push_back(led_points_3d_[index_3d_[i]]);
+		ContourInfo temp = contours_info_[index_2d_[i]];
+		points_2d_solve_.push_back(temp.center);
+	}
+
+	std::cout<<"I am here"<<std::endl;
+	TooN::Matrix<3,3> image_vectors;
+	TooN::Matrix<3,3> world_points;
+	TooN::Matrix<3,16> solutions;
+
+	std::vector<cv::Point2d> undistort_image_points;
+	camera_model_obj_.undistortPoints(points_2d_solve_, undistort_image_points);
+
+	Eigen::Vector3d single_vector;
+	//setup vector for solvepnp
+	for(int i = 0; i < 3; i++)
+	{
+		single_vector(0) = (undistort_image_points[i].x - camera_model_obj_.cx) / camera_model_obj_.fx;
+		single_vector(1) = (undistort_image_points[i].y - camera_model_obj_.cy) / camera_model_obj_.fy;
+		single_vector(2) = 1;
+		Eigen::Vector3d temp = single_vector/single_vector.norm();
+
+		image_vectors(0,i) = temp[0];
+		image_vectors(1,i) = temp[1];
+		image_vectors(2,i) = temp[2];
+
+		world_points(0,i) = points_3d_solve_[i].x;
+		world_points(1,i) = points_3d_solve_[i].y;
+		world_points(2,i) = points_3d_solve_[i].z;	
+	}
+
+	P3p obj;
+	int message = obj.computePoses(image_vectors, world_points, solutions);
+
+
+	for(int i = 0; i < 16; i = i+4)
+	{	
+
+		std::cout<<"I am at start if solution"<<std::endl;
+		TooN::Matrix<3,1> Ttoon = solutions.slice(0, i, 3, 1);
+		TooN::Matrix<3,3> Rtoon = solutions.slice(0, i+1, 3, 3);
+
+		cv::Mat tvecs = cv::Mat::zeros(3, 1, CV_64FC1);
+		tvecs.at<double>(0,0) = Ttoon[0][0];
+		tvecs.at<double>(1,0) = Ttoon[1][0];
+		tvecs.at<double>(2,0) = Ttoon[2][0];
+
+		cv::Mat R = cv::Mat::zeros(3, 3, CV_64FC1);
+
+		for(int j = 0; j < 3; j++)
+		{
+			for(int k = 0; k < 3; k++)
+			{
+				R.at<double>(j,k) = Rtoon[j][k];
+			}
+		}
+		std::cout<<"Translation:\n"<<tvecs<<std::endl;
+		std::cout<<"Rotation:\n"<<R<<std::endl;
+		translations_.push_back(tvecs);
+		rotations_.push_back(R);
+	}
+
 }
+
