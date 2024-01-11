@@ -7,8 +7,7 @@
 class CameraModel
 {
 private:
-	cv::Mat intrinsic_matrix = cv::Mat::zeros(3, 3, CV_64FC1);
-	cv::Mat distCoeffs = cv::Mat(4,1,CV_64FC1);
+
 
 	//void setCameraIntrinsicAndDistortionParameters();
 	cv::Point2d getImagePoints(const cv::Point3d& pt);
@@ -30,6 +29,8 @@ private:
 	double k1, k2, k3, k4, k5, k6; //distortion parameters
 
 public:
+		cv::Mat intrinsic_matrix = cv::Mat::zeros(3, 3, CV_64FC1);
+	cv::Mat distCoeffs = cv::Mat(4,1,CV_64FC1);
 	double fx, fy, cx, cy;   //intrinsics
 	//CameraModel(const std::string& config_file);
 	CameraModel();
@@ -43,6 +44,11 @@ public:
 									 distCoeffs, 
 									 cv::noArray(), 
 									 intrinsic_matrix);
+
+		for(int i = 0; i < 3; i++)
+		{
+			std::cout<<undistort_points[i]<<std::endl; 
+		}
 	}
 
 	void projectPoints(const std::vector<cv::Point3d>& points3, 

@@ -36,11 +36,11 @@ void test_rotatedAndSorted_contours()
 
 int main(int argc, char** argv)
 {
-	cv::Mat image = cv::imread("/home/varun/dev/ControllerPose_new/data/test.jpg");
+	cv::Mat image = cv::imread("../../data/latest.jpg");
 	obj = new EstimateControllerPose(image);
 	obj->getPose();
 /*	test_input();
 	test_contours();
 	test_rotatedAndSorted_contours();*/
 	return 0;
-}
+}	

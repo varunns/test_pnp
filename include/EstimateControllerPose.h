@@ -98,6 +98,20 @@ private:
 
 	void getVotesForTestFeatures(const cv::Mat& r, 
 								 const cv::Mat& t);
+
+	void getVotes(const cv::Mat& r,
+			      const cv::Mat& t,
+			      const int low_side,
+			      const int high_side,
+			      const int low_limit,
+			      const int high_limit,
+			      const int sign,
+			      int& count
+		      );
+
+	void drawPoints(const std::vector<cv::Point2d>& points2);
+
+	void getIdsFromVotes();
 };
 
 #endif
