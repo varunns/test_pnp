@@ -45,10 +45,10 @@ public:
 									 cv::noArray(), 
 									 intrinsic_matrix);
 
-		for(int i = 0; i < 3; i++)
+		/*for(int i = 0; i < 3; i++)
 		{
 			std::cout<<undistort_points[i]<<std::endl; 
-		}
+		}*/
 	}
 
 	void projectPoints(const std::vector<cv::Point3d>& points3, 

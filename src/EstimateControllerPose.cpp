@@ -81,7 +81,7 @@ void EstimateControllerPose::getFeatures()
     	}
     	contours_info_.push_back(contour_info_temp);
 
-    	std::cout<<contour_info_temp.center<<std::endl;
+    	//std::cout<<contour_info_temp.center<<std::endl;
 	}
 
 	if(debug_)
@@ -174,7 +174,7 @@ void EstimateControllerPose::setup3dIndicesAnd2dIndicesPairs()
 {
 	index_2d_.clear();
 	index_3d_.clear();
-	std::cout<<combinations_3d_.size()<<std::endl;
+	//std::cout<<combinations_3d_.size()<<std::endl;
 	for(int i = 0; i < combinations_3d_.size(); i++)
 	{
 		index_3d_ = combinations_3d_[i];
@@ -226,10 +226,10 @@ void EstimateControllerPose::setVotes(const cv::Mat& rvec,
 									r, t,
 									projected_points);
 
-	for(int i = 0; i < 3; i++)
+/*	for(int i = 0; i < 3; i++)
 	{
 		std::cout<<points_3d_solve_[i]<<" "<<projected_points[i]<<std::endl;
-	}
+	}*/
 
 	drawPoints(projected_points);
 
@@ -240,7 +240,7 @@ void EstimateControllerPose::setVotes(const cv::Mat& rvec,
 		return;
 	}
 
-	std::cout<<"I am past reprojection"<<std::endl;
+	//std::cout<<"I am past reprojection"<<std::endl;
 	//getVotesForTestFeatures(r, t);
 	int diff = index_3d_[2] - index_3d_[0];
 	int increasing = 1;
@@ -248,12 +248,15 @@ void EstimateControllerPose::setVotes(const cv::Mat& rvec,
 	int count = 0;
 
 	int max_index = *std::max(index_3d_.begin(), index_3d_.end());
-	int min_index = *std::max(index_3d_.begin(), index_3d_.end());
+	int min_index = *std::min(index_3d_.begin(), index_3d_.end());
+
  
 	if(diff > 0)
 	{
 		int low_side_3d  = index_3d_[0] - 1;
 		int high_side_3d = index_3d_.back() + 1;
+	/*	int low_side_3d  = min_index - 1;
+		int high_side_3d = max_index + 1;*/
 		getVotes(rvec, tvec, low_side_3d,
 				 high_side_3d, -1,
 				 led_points_3d_.size(),
@@ -264,6 +267,8 @@ void EstimateControllerPose::setVotes(const cv::Mat& rvec,
 	{
 		int low_side_3d = index_3d_.back() + 1;
 		int high_side_3d = index_3d_[0] - 1;
+	/*	int low_side_3d = max_index + 1;
+		int high_side_3d = min_index - 1;*/
 		increasing = -1;
 		getVotes(rvec, tvec, low_side_3d,
 				 high_side_3d, led_points_3d_.size(),
@@ -290,7 +295,7 @@ void EstimateControllerPose::getVotes(const cv::Mat& r,
 	int start_index_3d = low_side;
 	while(start_index_2d > -1 && sign*start_index_3d > sign*low_limit)
 	{
-		std::cout<<start_index_3d<<" "<<start_index_2d<<std::endl;
+		//std::cout<<start_index_3d<<" "<<start_index_2d<<std::endl;
 
 		cv::Point2d pt2 = contours_info_[start_index_2d].center;
 		cv::Point2d pt2_projected = camera_model_obj_.getImagePoint(led_points_3d_[start_index_3d]);
@@ -304,7 +309,7 @@ void EstimateControllerPose::getVotes(const cv::Mat& r,
 			votes_(start_index_2d, start_index_3d)++;
 		}
 
-		std::cout<<"Score:"<<score<<std::endl;
+		//std::cout<<"Score:"<<score<<std::endl;
 
 		start_index_2d--;
 		start_index_3d = start_index_3d - sign*1;
@@ -314,7 +319,7 @@ void EstimateControllerPose::getVotes(const cv::Mat& r,
 	start_index_3d = high_side;
 	while(start_index_2d < contours_info_.size() && sign*start_index_3d < sign*high_limit)
 	{
-		std::cout<<start_index_3d<<" "<<start_index_2d<<std::endl;
+		//std::cout<<start_index_3d<<" "<<start_index_2d<<std::endl;
 
 		cv::Point2d pt2 = contours_info_[start_index_2d].center;
 		cv::Point2d pt2_projected = camera_model_obj_.getImagePoint(led_points_3d_[start_index_3d]);
@@ -327,7 +332,7 @@ void EstimateControllerPose::getVotes(const cv::Mat& r,
 			votes_(start_index_2d, start_index_3d)++;
 		}
 
-		std::cout<<"Score:"<<score<<std::endl;
+		//std::cout<<"Score:"<<score<<std::endl;
 
 
 		start_index_2d++;
@@ -359,8 +364,8 @@ void EstimateControllerPose::solvePnpKniep()
 	
 	}
 
-	std::cout<<"********************Evaluating: Indices at work: ";
-	for(int i = 0; i < 3; i++)
+	///std::cout<<"********************Evaluating: Indices at work: ";
+	/*for(int i = 0; i < 3; i++)
 	{
 		std::cout<<index_2d_[i]<<"\t";
 	}
@@ -370,7 +375,7 @@ void EstimateControllerPose::solvePnpKniep()
 		std::cout<<index_3d_[i]<<"\t";
 	}
 	std::cout<<std::endl<<"Inputs: "<<std::endl;
-
+*/
 
 	TooN::Matrix<3,3> image_vectors;
 	TooN::Matrix<3,3> world_points;
@@ -423,8 +428,8 @@ void EstimateControllerPose::solvePnpKniep()
 			}
 		}
 
-		std::cout<<R<<std::endl;
-		std::cout<<tvecs<<std::endl;
+		//std::cout<<R<<std::endl;
+		//std::cout<<tvecs<<std::endl;
 
 		setVotes(R, tvecs);
 

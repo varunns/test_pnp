@@ -32,9 +32,9 @@ void CameraModel::projectPoints(const std::vector<cv::Point3d>& points3,
 								std::vector<cv::Point2d>& points2)
 {
 	setTransformation(R, T);
-	std::cout<<"before transformatjion: "<<std::endl;
-	std::cout<<R<<std::endl;
-	std::cout<<T<<std::endl;
+	//std::cout<<"before transformatjion: "<<std::endl;
+	//std::cout<<R<<std::endl;
+	//std::cout<<T<<std::endl;
 	for(int i = 0; i < points3.size(); i++)
 	{
 		cv::Point2d pt = getImagePoint(points3[i]);
@@ -69,7 +69,7 @@ cv::Point3d CameraModel::rotatePoint(cv::Point3d pt)
 	double Yc = r10*X + r11*Y + r12*Z;
 	double Zc = r20*X + r21*Y + r22*Z;
 
-	std::cout<<"^^^^^^^^^"<<Xc<<" "<<Yc<<" "<<Zc<<std::endl;
+	//std::cout<<"^^^^^^^^^"<<Xc<<" "<<Yc<<" "<<Zc<<std::endl;
 
 	return cv::Point3d(Xc, Yc, Zc);
 }
@@ -83,16 +83,16 @@ double CameraModel::reprojectionError(std::vector<cv::Point2d>& pt1,
 	{
 		distance += cv::norm(pt1[i] - pt2[i]);
 	}
-	std::cout<<"Reprojection error: "<<distance/double(pt1.size())<<std::endl;
-	std::cout<<"--------------------------------------------------------------"<<std::endl;
+	//std::cout<<"Reprojection error: "<<distance/double(pt1.size())<<std::endl;
+	//std::cout<<"--------------------------------------------------------------"<<std::endl;
 	return (distance/double(pt1.size()));
 
 }
 
 cv::Point3d CameraModel::translatePoint(cv::Point3d pt)
 {		
-	std::cout<<"@@@@@@@@@"<<pt.x+t0<<" "<<pt.y+t1<<" "<<pt.z+t2<<std::endl;
-	std::cout<<t0<<" "<<t1<<" "<<t2<<std::endl;
+	//std::cout<<"@@@@@@@@@"<<pt.x+t0<<" "<<pt.y+t1<<" "<<pt.z+t2<<std::endl;
+	//std::cout<<t0<<" "<<t1<<" "<<t2<<std::endl;
 	return cv::Point3d(pt.x+t0, pt.y+t1, pt.z+t2);
 }
 
@@ -115,7 +115,7 @@ cv::Point2d CameraModel::pinholeProjection(const cv::Point3d& pt)
 	double b = pt.y/pt.z;
 
 	//std::cout<<"Point after pinhole projection::\n"<<cv::Point2d(a, b)<<std::endl;
-	std::cout<<"**********"<<a<<" "<<b<<std::endl;
+	//std::cout<<"**********"<<a<<" "<<b<<std::endl;
 	return cv::Point2d(a, b);
 }
 
@@ -137,7 +137,7 @@ cv::Point2d CameraModel::fisheyeDistortion(const cv::Point2d& pt)
 
 	//std::cout<<"Point after fisheye distortion: "<<cv::Point2d(x, y)<<std::endl;
 
-	std::cout<<"========"<<x<<" "<<y<<std::endl;
+	//std::cout<<"========"<<x<<" "<<y<<std::endl;
 
 	return cv::Point2d(x, y);
 
