@@ -37,7 +37,7 @@ void test_rotatedAndSorted_contours()
 int main(int argc, char** argv)
 {
 	//cv::Mat image = cv::imread("../../data/latest.jpg");
-	cv::Mat image = cv::imread("../../data/data_basic_test/pose_extreme.jpg");
+	cv::Mat image = cv::imread("../../data/data_basic_test/pose1.jpg");
 	obj = new EstimateControllerPose(image);
 	obj->getPose();
 /*	test_input();

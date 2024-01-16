@@ -16,6 +16,7 @@ EstimateControllerPose::EstimateControllerPose(const cv::Mat& image)
 	readCombinationsFromCSVFile("/home/varun/dev/test_pnp/data/combination.csv");
 	Constants const_obj;
 	led_points_3d_ = const_obj.getPoints3d();
+	std::cout<<combinations_3d_.size()<<std::endl;
 
 }
 
@@ -79,6 +80,10 @@ void EstimateControllerPose::getFeatures()
     	{
     		continue;
     	}
+    	cv::Rect bounding_rect = cv::boundingRect(contours_[i]);
+    	bounding_rect = cv::Rect( bounding_rect.x - 3, bounding_rect.y - 3, bounding_rect.width + 6, bounding_rect.height + 6 );
+    	contour_info_temp.bounding_rect = bounding_rect;
+
     	contours_info_.push_back(contour_info_temp);
 
     	//std::cout<<contour_info_temp.center<<std::endl;
@@ -94,7 +99,6 @@ void EstimateControllerPose::getFeatures()
 	    }
 	    cv::namedWindow("Contours", cv::WINDOW_NORMAL);
     	cv::imshow( "Contours", drawing );
-    	//cv::waitKey(0);
 	}
 
 	//initialize vote matrix
@@ -166,36 +170,115 @@ void EstimateControllerPose::rotateAndSortContours()
 		}
 		cv::namedWindow("rotated Contours", cv::WINDOW_NORMAL);
     	cv::imshow( "rotated Contours", test_image );
-    	//cv::waitKey(0);
+    	cv::waitKey(0);
 	}
+}
+
+bool EstimateControllerPose::rectContains(cv::Rect rect, cv::Point2d pt)
+{
+	double x1 = rect.x; double y1 = rect.y; double x2 = x1+rect.width; double y2 = y1+rect.height;
+
+	if(pt.x < x1 || pt.y < y1 || pt.x > x2 || pt.y > y2)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void EstimateControllerPose::performNeighborLedMatching(MatchingStat& matching_stat)
+{
+	int min_index = std::max(*std::min(matching_stat.index3d.begin(), matching_stat.index3d.end()) - 3, 0);
+	int max_index = std::min(*std::max(matching_stat.index3d.begin(), matching_stat.index3d.end()) + 3, 14);
+
+	std::cout<<min_index<<" "<<max_index<<std::endl;
+
+	cv::Mat r = matching_stat.r;
+	cv::Mat t = matching_stat.t;
+
+	cv::Mat test_image = image_.clone();
+
+	for(int i = min_index; i < max_index; i++)
+	{
+		//check index is not in 3d indices
+		if(std::find(matching_stat.index3d.begin(), matching_stat.index3d.end(), i) != matching_stat.index3d.end())
+		{
+			continue;
+		}
+		//for each point get image point
+		cv::Point2d pt = camera_model_obj_.getImagePoint(led_points_3d_[i], r, t);
+		cv::circle(test_image, pt, 1, cv::Scalar(0,0,255), -1);
+
+		//loop in all 2d indices
+		for(int j = 0; j < contours_info_.size(); j++)
+		{
+			//check if the index is not in existing indices
+			if(std::find(matching_stat.index2d.begin(), matching_stat.index2d.end(), j) != matching_stat.index2d.end())
+			{
+				continue;
+			}
+			//check with rect
+			bool is_point_near_contour = rectContains(contours_info_[i].bounding_rect, pt);
+			if(is_point_near_contour && matching_stat.full_matches[j] != -1)
+			{
+				matching_stat.full_matches[j] = i;
+				matching_stat.votes++;
+				continue;
+			}
+			//if the rect already has point continue
+		}
+		//update full_match array
+		//add reprojection error
+		//loop
+	}
+
+	cv::namedWindow("project", cv::WINDOW_NORMAL);
+	cv::imshow("porject", test_image);
+	cv::waitKey(0);
+
+	for(int i = 0; i < matching_stat.full_matches.size(); i++)
+	{
+		std::cout<<matching_stat.full_matches[i]<<"\t";
+	}
+	std::cout<<std::endl;
 }
 
 void EstimateControllerPose::setup3dIndicesAnd2dIndicesPairs()
 {
-	index_2d_.clear();
-	index_3d_.clear();
-	//std::cout<<combinations_3d_.size()<<std::endl;
+	std::vector<cv::Point2d> points_2d;
+
+	int mid_point_index = contours_info_.size()/2;
+	points_2d.push_back(contours_info_[mid_point_index-1].center);
+	points_2d.push_back(contours_info_[mid_point_index].center);
+	points_2d.push_back(contours_info_[mid_point_index+1].center);
+
+	std::vector<int> indices_2d;
+	indices_2d.push_back(mid_point_index-1);
+	indices_2d.push_back(mid_point_index);
+	indices_2d.push_back(mid_point_index+1);
+
 	for(int i = 0; i < combinations_3d_.size(); i++)
 	{
-		index_3d_ = combinations_3d_[i];
-		for(int j = 0; j < contours_.size()-3; j++)
-		{
-			index_2d_.push_back(j);
-			index_2d_.push_back(j+1);
-			index_2d_.push_back(j+2);
-			solvePnpAndVote();
-			index_2d_.clear();
-		}
-		index_3d_.clear();
+		solvePnpKniep(combinations_3d_[i], indices_2d, points_2d);
 	}
-	std::cout<<votes_<<std::endl;
+
+	int matching_stats_size = matching_stats.size();
+	for(int i = 0; i < matching_stats_size; i++)
+	{
+		performNeighborLedMatching(matching_stats[i]);
+		for(int j = 0; j < matching_stats[i].full_matches.size(); j++)
+		{
+			std::cout<<j<<" "<<matching_stats[i].full_matches[j]<<std::endl;
+		}
+		std::cout<<"-----------------------------------------------------------------------------------"<<std::endl;
+	}
 }
 
-void EstimateControllerPose::solvePnpAndVote()
+/*void EstimateControllerPose::solvePnpAndVote()
 {
 	solvePnpKniep();
 	getIdsFromVotes();
-}
+}*/
 
 void EstimateControllerPose::getIdsFromVotes()
 {
@@ -211,7 +294,7 @@ void EstimateControllerPose::drawPoints(const std::vector<cv::Point2d>& points2)
 	}
 	cv::namedWindow("porject", cv::WINDOW_NORMAL);
 	cv::imshow("porject", test_image);
-	//cv::waitKey(0);
+	cv::waitKey(0);
 }
 
 
@@ -348,41 +431,48 @@ void EstimateControllerPose::getVotes(const cv::Mat& r,
 
 }
 
+bool EstimateControllerPose::checkIsNaN(cv::Mat r, cv::Mat t)
+{
+	if(std::isnan(t.at<double>(0,0)) || std::isnan(t.at<double>(1,0)) ||std::isnan(t.at<double>(2,0)) )
+	{
+		return true;
+	}
 
-void EstimateControllerPose::solvePnpKniep()
+	for(int j = 0; j < 3; j++)
+	{
+		for(int k = 0; k < 3; k++)
+		{
+			if( std::isnan(r.at<double>(j,k)))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+
+}
+
+
+void EstimateControllerPose::solvePnpKniep(std::vector<int> indices_3d,
+										   std::vector<int> indices_2d,
+										   std::vector<cv::Point2d> points_2d)
 {
 
-	points_3d_solve_.clear();
-	points_2d_solve_.clear();
+	std::vector<cv::Point3d> points_3d;
 
-	for(size_t i = 0; i < 3; i++)
-	{
-		points_3d_solve_.push_back(led_points_3d_[index_3d_[i]]);
-		ContourInfo temp = contours_info_[index_2d_[i]];
-		points_2d_solve_.push_back(temp.center);
-
-	
-	}
-
-	///std::cout<<"********************Evaluating: Indices at work: ";
-	/*for(int i = 0; i < 3; i++)
-	{
-		std::cout<<index_2d_[i]<<"\t";
-	}
-	std::cout<<":::"<<"\t";
 	for(int i = 0; i < 3; i++)
 	{
-		std::cout<<index_3d_[i]<<"\t";
+		points_3d.push_back(led_points_3d_[indices_3d[i]]);
+		//cv::circle(test_image1, points_2d[i], 1, cv::Scalar(0,255,0), -1);
 	}
-	std::cout<<std::endl<<"Inputs: "<<std::endl;
-*/
 
 	TooN::Matrix<3,3> image_vectors;
 	TooN::Matrix<3,3> world_points;
 	TooN::Matrix<3,16> solutions;
 
 	std::vector<cv::Point2d> undistort_image_points;
-	camera_model_obj_.undistortPoints(points_2d_solve_, undistort_image_points);
+	camera_model_obj_.undistortPoints(points_2d, undistort_image_points);
 
 	Eigen::Vector3d single_vector;
 	//setup vector for solvepnp
@@ -397,9 +487,9 @@ void EstimateControllerPose::solvePnpKniep()
 		image_vectors(1,i) = temp[1];
 		image_vectors(2,i) = temp[2];
 
-		world_points(0,i) = points_3d_solve_[i].x;
-		world_points(1,i) = points_3d_solve_[i].y;
-		world_points(2,i) = points_3d_solve_[i].z;	
+		world_points(0,i) = points_3d[i].x;
+		world_points(1,i) = points_3d[i].y;
+		world_points(2,i) = points_3d[i].z;	
 	}
 
 	P3p obj;
@@ -411,11 +501,11 @@ void EstimateControllerPose::solvePnpKniep()
 		TooN::Matrix<3,1> Ttoon = solutions.slice(0, i, 3, 1);
 		TooN::Matrix<3,3> Rtoon = solutions.slice(0, i+1, 3, 3);
 
-		cv::Mat tvecs = cv::Mat::zeros(3, 1, CV_64FC1);
+		cv::Mat T = cv::Mat::zeros(3, 1, CV_64FC1);
 
 		for(int j = 0; j < 3; j++)
 		{
-			tvecs.at<double>(j,0) = Ttoon[j][0];
+			T.at<double>(j,0) = Ttoon[j][0];
 		}
 
 		cv::Mat R = cv::Mat::zeros(3, 3, CV_64FC1);
@@ -428,13 +518,73 @@ void EstimateControllerPose::solvePnpKniep()
 			}
 		}
 
-		//std::cout<<R<<std::endl;
-		//std::cout<<tvecs<<std::endl;
+	/*	std::cout<<R<<std::endl;
+		std::cout<<T<<std::endl;*/
+		
+		//check isnan
+		if(checkIsNaN(R, T))
+		{
+			continue;
+		}
 
-		setVotes(R, tvecs);
+		//invert to get leds ot get their pose
+		cv::Mat r_led = R.inv();
+		cv::Mat t_led = -R.inv()*T;
+
+		//check negative z
+		if(t_led.at<double>(2,0) < 0)
+		{
+			continue;
+		}
+
+		//check minimum limits for distance
+		cv::Mat sq = t_led.t()*t_led;
+		double distance_led = std::sqrt(sq.at<double>(0,0));
+		if(distance_led < MIN_DISTANCE_LED || distance_led > MAX_DISTANCE_LED)
+		{
+			continue;
+		}
+
+		//check reprojection error
+		std::vector<cv::Point2d> projected_points;
+		camera_model_obj_.projectPoints(points_3d, r_led, t_led, projected_points);
+		double reproject_error = camera_model_obj_.reprojectionError(points_2d, projected_points);
+		if(reproject_error > 1.0)
+		{
+			continue;
+		}
+		
+
+		//start voting and fill the struct
+		MatchingStat temp;
+		temp.index2d = indices_2d;
+		temp.index3d = indices_3d;
+		temp.r = r_led;
+		temp.t = t_led;
+		std::vector<int> temp_match(contours_info_.size(), -1);
+		temp.reprojectionError = reproject_error;
+		temp.votes = 3;
+		temp.full_matches = temp_match;
+		for(int i = 0; i < 3; i++)
+		{
+			temp.full_matches[indices_2d[i]] = indices_3d[i];
+		}
+		matching_stats.push_back(temp);
+
+		cv::Mat test_image1 = image_.clone();
+		for(int j = 0; j < 3; j++)
+		{
+			cv::circle(test_image1, projected_points[j], 1, cv::Scalar(0,0,255), -1);
+		}
+		cv::namedWindow("porject1", cv::WINDOW_NORMAL);
+		cv::imshow("porject1", test_image1);
+		//cv::waitKey(0);
+		test_image1.release();
+
+		//count votes
 
 		R.release();
-		tvecs.release();
+		T.release();
 	}
 
 }

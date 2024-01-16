@@ -60,6 +60,10 @@ public:
 
 	double reprojectionError(std::vector<cv::Point2d>& pt1,
 					  		 std::vector<cv::Point2d>& pt2);
+
+	cv::Point3d translatePoint(cv::Point3d pt, cv::Mat t);
+	cv::Point3d rotatePoint(cv::Point3d pt, cv::Mat R);
+	cv::Point2d getImagePoint(const cv::Point3d& pt, cv::Mat R, cv::Mat t);
 };
 
 #endif

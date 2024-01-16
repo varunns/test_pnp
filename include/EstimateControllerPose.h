@@ -29,8 +29,22 @@ public:
 		std::vector<cv::Point> contour;
 		cv::Point2d center;
 		cv::Point2d rotated_center;
+		cv::Rect bounding_rect;
 		int id;
 	};
+
+	struct MatchingStat
+	{
+		std::vector<int> index3d;
+		std::vector<int> index2d;
+		cv::Mat r;
+		cv::Mat t;
+		int votes;
+		double reprojectionError;
+		std::vector<int> full_matches;
+	};
+
+	std::vector<MatchingStat> matching_stats;
 
 	void getPose();
 	EstimateControllerPose(const cv::Mat& image);
@@ -76,7 +90,9 @@ private:
 	//solve p3p give 4 differnt solutions
 	std::vector<cv::Mat> rotations_;
 	std::vector<cv::Mat> translations_;
-	void solvePnpKniep();
+	void solvePnpKniep(std::vector<int> indices_3d,
+					   std::vector<int> indices_2d,
+					   std::vector<cv::Point2d> points_2d);
 	void setup3dIndicesAnd2dIndicesPairs();
 
 
@@ -112,6 +128,17 @@ private:
 	void drawPoints(const std::vector<cv::Point2d>& points2);
 
 	void getIdsFromVotes();
+
+	bool checkIsNaN(cv::Mat r, cv::Mat t);
+
+	void performNeighborLedMatching(MatchingStat& matching_stat);
+
+	const double MIN_DISTANCE_LED = 0.01;
+	const double MAX_DISTANCE_LED = 0.45;
+
+	bool rectContains(cv::Rect rect, cv::Point2d pt);
+
+
 };
 
 #endif

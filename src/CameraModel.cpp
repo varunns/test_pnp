@@ -106,6 +106,52 @@ cv::Point2d CameraModel::getImagePoint(const cv::Point3d& p)
 	return pixel_fisheye;
 }
 
+cv::Point3d CameraModel::translatePoint(cv::Point3d pt, cv::Mat t)
+{
+	///std::cout<<"Translation:\n"<<t<<std::endl;
+	cv::Point3d translated_point(pt.x+t.at<double>(0,0), pt.y+t.at<double>(1,0), pt.z+t.at<double>(2,0));
+	//std::cout<<"Point in Camera coordinates after translation:\n"<<translated_point<<std::endl;
+	return translated_point;
+}
+
+cv::Point3d CameraModel::rotatePoint(cv::Point3d pt, cv::Mat R)
+{
+	//std::cout<<"Rotation Matrix:\n"<<R<<std::endl;
+	double X = pt.x;
+	double Y = pt.y;
+	double Z = pt.z;
+
+	double r00 = R.at<double>(0,0);
+	double r01 = R.at<double>(0,1);
+	double r02 = R.at<double>(0,2);
+	double r10 = R.at<double>(1,0);
+	double r11 = R.at<double>(1,1);
+	double r12 = R.at<double>(1,2);
+	double r20 = R.at<double>(2,0);
+	double r21 = R.at<double>(2,1);
+	double r22 = R.at<double>(2,2);
+
+	double Xc = r00*X + r01*Y + r02*Z;
+	double Yc = r10*X + r11*Y + r12*Z;
+	double Zc = r20*X + r21*Y + r22*Z;
+
+	return cv::Point3d(Xc, Yc, Zc);
+
+}
+
+
+
+cv::Point2d CameraModel::getImagePoint(const cv::Point3d& pt, cv::Mat R, cv::Mat t)
+{
+	cv::Point3d rotated_point = rotatePoint(pt, R);
+	cv::Point3d translated_point = translatePoint(rotated_point, t);
+	cv::Point2d pinhole_projected_point = pinholeProjection(translated_point);
+	//cv::Point2d pinhole_distorted_point = pinholeDistortion(pinhole_projected_point);
+	cv::Point2d fisheye_distorted_point = fisheyeDistortion(pinhole_projected_point);
+	//cv::Point2d pixel_pinhole = getPixelCoordinates(pinhole_projected_point, "pinhole");
+	cv::Point2d pixel_fisheye = getPixelCoordinates(fisheye_distorted_point);
+	return pixel_fisheye;
+}
 
 /* This method perfoms a pinhole projection given a 3d point and returns
    2d point  */
