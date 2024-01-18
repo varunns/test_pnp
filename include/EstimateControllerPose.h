@@ -41,7 +41,7 @@ public:
 		cv::Mat t;
 		int votes;
 		double reprojectionError;
-		std::vector<int> full_matches;
+		std::vector<int> matches;
 	};
 
 	std::vector<MatchingStat> matching_stats;
@@ -65,7 +65,7 @@ private:
 	std::vector<ContourInfo> contours_info_;
 	std::vector<cv::Point2d> feature_points_;
 
-	void getCandidatePointsAndPassToPnpVoting();
+//	void getCandidatePointsAndPassToPnpVoting();
 	
 
 	std::vector<int> index_2d_;
@@ -90,9 +90,12 @@ private:
 	//solve p3p give 4 differnt solutions
 	std::vector<cv::Mat> rotations_;
 	std::vector<cv::Mat> translations_;
-	void solvePnpKniep(std::vector<int> indices_3d,
+/*	void solvePnpKniep(std::vector<int> indices_3d,
 					   std::vector<int> indices_2d,
-					   std::vector<cv::Point2d> points_2d);
+					   std::vector<cv::Point2d> points_2d);*/
+
+	void solvePnpKniep(std::vector<int> indices_2d,
+					   std::vector<int> indices_3d);
 	void setup3dIndicesAnd2dIndicesPairs();
 
 
@@ -103,19 +106,19 @@ private:
 
 	void readCombinationsFromCSVFile(const std::string& str);
 
-	void solvePnpAndVote();
+//	void solvePnpAndVote();
 
-	void test_inputs();
+//	void test_inputs();
 
-	void setVotes(const cv::Mat& rvec,
-				  const cv::Mat& tvec);
+/*	void setVotes(const cv::Mat& rvec,
+				  const cv::Mat& tvec);*/
 
 	Eigen::MatrixXd votes_;
 
-	void getVotesForTestFeatures(const cv::Mat& r, 
-								 const cv::Mat& t);
+/*	void getVotesForTestFeatures(const cv::Mat& r, 
+								 const cv::Mat& t);*/
 
-	void getVotes(const cv::Mat& r,
+/*	void getVotes(const cv::Mat& r,
 			      const cv::Mat& t,
 			      const int low_side,
 			      const int high_side,
@@ -123,20 +126,25 @@ private:
 			      const int high_limit,
 			      const int sign,
 			      int& count
-		      );
+		      );*/
 
 	void drawPoints(const std::vector<cv::Point2d>& points2);
 
-	void getIdsFromVotes();
+	//void getIdsFromVotes();
 
 	bool checkIsNaN(cv::Mat r, cv::Mat t);
 
-	void performNeighborLedMatching(MatchingStat& matching_stat);
+	//void performNeighborLedMatching(MatchingStat& matching_stat);
 
 	const double MIN_DISTANCE_LED = 0.01;
 	const double MAX_DISTANCE_LED = 0.45;
 
 	bool rectContains(cv::Rect rect, cv::Point2d pt);
+
+	void doVotingForIncreasing(cv::Mat r, cv::Mat T, 
+						  	   std::vector<int> index3, 
+						  	   std::vector<int> index2, 
+						  	   double reproject_error);
 
 
 };
